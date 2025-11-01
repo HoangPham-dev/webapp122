@@ -1,0 +1,5 @@
+{
+  "name": "Copy of Invoice Generator",
+  "description": "A web application that helps users create professional invoices, download them as PDFs, and switch between dark and light modes for comfortable viewing.",
+  "requestFramePermissions": []
+}
