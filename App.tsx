@@ -89,7 +89,7 @@ const App: React.FC = () => {
         )}
       </main>
       <footer className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
-        <p>Built with React, TypeScript, and Supabase.</p>
+        <p>Author:HoangPham</p>
       </footer>
     </div>
   );
