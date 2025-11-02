@@ -6,6 +6,7 @@ export interface LineItem {
 }
 
 export interface Invoice {
+  id?: string;
   invoiceNumber: string;
   date: string;
   dueDate: string;
