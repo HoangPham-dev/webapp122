@@ -25,71 +25,21 @@ const Auth: React.FC = () => {
 
         try {
             if (isForgotPassword) {
-                // To implement this feature, you need to create a PostgreSQL function in your Supabase project.
-                // Go to the SQL Editor in your Supabase dashboard and run the following query:
-                /*
-                    create or replace function user_exists(email_to_check text)
-                    returns boolean
-                    language plpgsql
-                    security definer
-                    as $$
-                    begin
-                      return exists (
-                        select 1
-                        from auth.users
-                        where email = email_to_check
-                      );
-                    end;
-                    $$;
-                */
-                const { data: userExists, error: rpcError } = await supabase.rpc('user_exists', {
-                    email_to_check: email,
-                });
-
-                if (rpcError) {
-                    console.error("Error calling RPC 'user_exists':", rpcError);
-                    if (rpcError.message.includes("function user_exists")) {
-                         console.error("Hint: The 'user_exists' function is missing or has incorrect parameters. Please create it in the Supabase SQL Editor as per the comment in Auth.tsx.");
-                    }
-                    // For security, present a generic error to the user
-                    throw new Error(t('errorOccurred'));
-                }
-
-                if (userExists) {
-                    const { error } = await supabase.auth.resetPasswordForEmail(email);
-                    if (error) throw error;
-                    setMessage(t('checkEmailReset'));
-                } else {
-                    setError(t('emailNotRegistered'));
-                }
+                // Supabase's resetPasswordForEmail does not throw an error for non-existent emails for security reasons.
+                // It will succeed and the user is told to check their email, preventing email enumeration attacks.
+                const { error } = await supabase.auth.resetPasswordForEmail(email);
+                if (error) throw error;
+                setMessage(t('checkEmailReset'));
             } else if (isSignUp) {
                 if (password !== confirmPassword) {
                     throw new Error(t('passwordsDoNotMatch'));
                 }
 
-                // Explicitly check if the user exists before trying to sign up.
-                // This provides a clearer error message ("Email is already registered")
-                // than relying on the signUp function's behavior, which might just
-                // resend a confirmation email if the user is unconfirmed.
-                const { data: userExists, error: rpcError } = await supabase.rpc('user_exists', {
-                    email_to_check: email,
-                });
-
-                if (rpcError) {
-                    console.error("Error calling RPC 'user_exists':", rpcError);
-                    if (rpcError.message.includes("function user_exists")) {
-                         console.error("Hint: The 'user_exists' function is missing or has incorrect parameters. Please create it in the Supabase SQL Editor as per the comment in Auth.tsx.");
-                    }
-                    throw new Error(t('errorOccurred'));
-                }
-
-                if (userExists) {
-                    throw new Error(t('emailAlreadyRegistered'));
-                }
-
                 const { error } = await supabase.auth.signUp({ email, password });
                 
                 if (error) {
+                    // Let the catch block handle the error message from Supabase,
+                    // which is often more specific (e.g., "User already registered").
                     throw error;
                 }
 
@@ -221,7 +171,7 @@ const Auth: React.FC = () => {
                                         resetFormState();
                                     }}
                                     type="button"
-                                    className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 focus:outline-none"
+                                    className="font-medium text-[#e96e2f] hover:text-[#d3642a] dark:text-[#e96e2f] dark:hover:text-[#f08a54] focus:outline-none"
                                 >
                                     {t('forgotPassword')}
                                 </button>
@@ -237,7 +187,7 @@ const Auth: React.FC = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="group relative flex w-full justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-indigo-400 disabled:cursor-not-allowed"
+                            className="group relative flex w-full justify-center rounded-md border border-transparent bg-[#eb6f2f] py-2 px-4 text-sm font-medium text-white hover:bg-[#d46429] focus:outline-none focus:ring-2 focus:ring-[#eb6f2f] focus:ring-offset-2 disabled:bg-[#eb6f2f]/50 disabled:cursor-not-allowed"
                         >
                             {getButtonText()}
                         </button>
@@ -254,7 +204,7 @@ const Auth: React.FC = () => {
                             }
                             resetFormState();
                         }}
-                        className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                        className="text-sm font-medium text-[#e96e2f] hover:text-[#d3642a] dark:text-[#e96e2f] dark:hover:text-[#f08a54]"
                     >
                         {isForgotPassword ? t('backToSignIn') : (isSignUp ? t('alreadyHaveAccount') : t('dontHaveAccount'))}
                     </button>

@@ -116,13 +116,13 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
-      <header className="bg-white dark:bg-gray-800 shadow-md">
+      <header className="bg-[#2b2b29] shadow-2xl border-b border-white/10">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{t('invoiceGenerator')}</h1>
+            <h1 className="text-2xl font-bold text-white">{t('invoiceGenerator')}</h1>
             <div className="flex items-center space-x-2 sm:space-x-4">
               {session && (
-                  <p className="text-sm text-gray-600 dark:text-gray-300 hidden sm:block" aria-live="polite">
+                  <p className="text-sm text-white hidden sm:block" aria-live="polite">
                     {t('signedInAs')} <span className="font-semibold">{session.user.email}</span>
                   </p>
               )}
@@ -130,7 +130,7 @@ const AppContent: React.FC = () => {
               {session && (
                  <button
                     onClick={() => setView('list')}
-                    className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    className="p-2 rounded-full text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#2b2b29] focus:ring-white"
                     aria-label={t('myInvoices')}
                   >
                     <InvoicesIcon className="w-6 h-6" />
@@ -141,7 +141,7 @@ const AppContent: React.FC = () => {
               {session && (
                 <button
                   onClick={handleSignOut}
-                  className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="p-2 rounded-full text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#2b2b29] focus:ring-white"
                   aria-label={t('signOut')}
                 >
                   <SignOutIcon className="w-6 h-6" />
