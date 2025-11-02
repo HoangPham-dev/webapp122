@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 
 const translations = {
@@ -65,6 +66,9 @@ const translations = {
         editInvoiceAria: 'Edit invoice {{invoiceNumber}}',
         deleteInvoiceAria: 'Delete invoice {{invoiceNumber}}',
         deleteConfirm: 'Are you sure you want to delete invoice {{invoiceNumber}}?',
+        deleteInvoiceTitle: 'Delete Invoice?',
+        cancel: 'Cancel',
+        delete: 'Delete',
         
         // Invoice Form
         editingInvoice: 'Editing: {{invoiceNumber}}',
@@ -160,6 +164,9 @@ const translations = {
         editInvoiceAria: 'Chỉnh sửa hoá đơn {{invoiceNumber}}',
         deleteInvoiceAria: 'Xóa hoá đơn {{invoiceNumber}}',
         deleteConfirm: 'Bạn có chắc muốn xóa hoá đơn {{invoiceNumber}} không?',
+        deleteInvoiceTitle: 'Xóa hóa đơn?',
+        cancel: 'Hủy',
+        delete: 'Xóa',
         editingInvoice: 'Đang sửa: {{invoiceNumber}}',
         backToList: 'Quay lại danh sách',
         saving: 'Đang lưu...',
@@ -253,6 +260,9 @@ const translations = {
         editInvoiceAria: 'Bewerk factuur {{invoiceNumber}}',
         deleteInvoiceAria: 'Verwijder factuur {{invoiceNumber}}',
         deleteConfirm: 'Weet u zeker dat u factuur {{invoiceNumber}} wilt verwijderen?',
+        deleteInvoiceTitle: 'Factuur verwijderen?',
+        cancel: 'Annuleren',
+        delete: 'Verwijderen',
         editingInvoice: 'Bewerken: {{invoiceNumber}}',
         backToList: 'Terug naar lijst',
         saving: 'Opslaan...',
