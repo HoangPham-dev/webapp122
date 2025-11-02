@@ -41,10 +41,10 @@ const Auth: React.FC = () => {
                     throw error;
                 }
 
-                // Supabase's signUp doesn't return an error for an existing user to prevent email enumeration.
-                // Instead, we inspect the response. If the user object has `email_confirmed_at` set,
-                // it means this user has already signed up and confirmed their email.
-                if (data.user && data.user.email_confirmed_at) {
+                // To prevent email enumeration, Supabase signUp doesn't error if the user already exists.
+                // Instead, it returns a user object. For a confirmed existing user, the `identities` array is empty.
+                // For a new user, it contains the new identity.
+                if (data.user && data.user.identities && data.user.identities.length === 0) {
                      setError(t('emailAlreadyRegistered'));
                 } else {
                     // This message is appropriate for both new users and existing but unconfirmed users.
