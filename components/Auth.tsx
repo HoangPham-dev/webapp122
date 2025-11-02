@@ -1,13 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTranslation } from '../lib/i18n';
 import { EyeIcon, EyeOffIcon } from './Icons';
 
-const Auth: React.FC = () => {
+interface AuthProps {
+    initialMode?: 'signin' | 'signup';
+}
+
+const Auth: React.FC<AuthProps> = ({ initialMode = 'signin' }) => {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
-    const [isSignUp, setIsSignUp] = useState(false);
+    const [isSignUp, setIsSignUp] = useState(initialMode === 'signup');
     const [isForgotPassword, setIsForgotPassword] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -16,6 +20,16 @@ const Auth: React.FC = () => {
     const [message, setMessage] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    useEffect(() => {
+        setIsSignUp(initialMode === 'signup');
+        // Reset fields when mode changes to provide a clean slate
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+        setError(null);
+        setMessage(null);
+    }, [initialMode]);
 
     const handleAuthAction = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -72,11 +86,6 @@ const Auth: React.FC = () => {
         if (isForgotPassword) return t('resetPasswordTitle');
         return isSignUp ? t('createAccountTitle') : t('signInTitle');
     };
-
-    const getDescription = () => {
-        if (isForgotPassword) return t('resetPasswordDesc');
-        return t('authDesc');
-    };
     
     const getButtonText = () => {
         if (loading) return t('processing');
@@ -91,9 +100,6 @@ const Auth: React.FC = () => {
                     <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
                         {getTitle()}
                     </h2>
-                    <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-                        {getDescription()}
-                    </p>
                 </div>
                 <form className="mt-8 space-y-6" onSubmit={handleAuthAction}>
                     <div className="space-y-4 rounded-md shadow-sm">

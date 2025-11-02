@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useTranslation } from '../lib/i18n';
 import { GlobeIcon } from './Icons';
 
@@ -12,33 +12,40 @@ const languages = {
 const LanguageSwitcher: React.FC = () => {
     const { language, setLanguage } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
-    const wrapperRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        }
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, [wrapperRef]);
+    const timeoutRef = useRef<number | null>(null);
     
     const handleLanguageChange = (lang: 'en' | 'vi' | 'nl') => {
         setLanguage(lang);
         setIsOpen(false);
     }
 
+    const handleMouseEnter = () => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+        setIsOpen(true);
+    };
+    
+    const handleMouseLeave = () => {
+        timeoutRef.current = window.setTimeout(() => {
+            setIsOpen(false);
+        }, 200);
+    };
+
+
     return (
-        <div className="relative" ref={wrapperRef}>
+        <div 
+            className="relative"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+        >
             <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="p-2 rounded-full text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#2b2b29] focus:ring-white"
+                className="p-2 rounded-full text-white hover:bg-white/20 focus:outline-none"
                 aria-label="Change language"
                 aria-haspopup="true"
                 aria-expanded={isOpen}
+                onClick={() => setIsOpen(!isOpen)}
             >
                 <GlobeIcon className="w-6 h-6" />
             </button>

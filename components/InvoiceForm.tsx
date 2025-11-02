@@ -5,6 +5,7 @@ import InvoiceField from './InvoiceField';
 import { TrashIcon, PlusIcon, DownloadIcon } from './Icons';
 import { supabase } from '../lib/supabase';
 import { useTranslation } from '../lib/i18n';
+import { Session } from '@supabase/supabase-js';
 
 
 // --- Supabase Database Setup ---
@@ -69,11 +70,13 @@ const currencyOptions = [
 
 interface InvoiceFormProps {
     invoiceData: Invoice;
+    session: Session | null;
     onSaveSuccess: () => void;
     onBack: () => void;
+    onRequestAuth: (mode: 'signin' | 'signup') => void;
 }
 
-const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, onBack }) => {
+const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, session, onSaveSuccess, onBack, onRequestAuth }) => {
     const { t, language } = useTranslation();
     const [invoice, setInvoice] = useState<Invoice>(invoiceData);
     const [isSaving, setIsSaving] = useState(false);
@@ -90,8 +93,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
         setIsSaving(true);
         setMessage(null);
         
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        if (!session?.user) {
             setMessage({ type: 'error', text: t('mustBeLoggedInToSave') });
             setIsSaving(false);
             return;
@@ -101,7 +103,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
 
         const { error } = await supabase.from('invoices').upsert({
             id: invoiceToSave.id,
-            user_id: user.id,
+            user_id: session.user.id,
             invoice_data: invoiceToSave
         });
 
@@ -190,7 +192,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
             const canvas = await html2canvas(invoicePreview, {
                 scale: 2,
                 useCORS: true,
-                backgroundColor: document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff'
+                backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff' // Updated dark bg
             });
 
             const imgData = canvas.toDataURL('image/png');
@@ -219,7 +221,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
                     {message.text}
                 </div>
             )}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Form Section */}
                 <div className="space-y-6 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
                      <div className="flex flex-wrap items-center justify-between gap-4">
@@ -227,21 +229,31 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
                           {invoice.id ? t('editingInvoice', {invoiceNumber: invoice.invoiceNumber}) : t('newInvoice')}
                         </h2>
                         <div className="flex items-center gap-2">
-                           <button
+                           {invoiceData.id && (
+                             <button
                                 onClick={onBack}
                                 className="px-4 py-2 bg-gray-600 text-white font-semibold rounded-md hover:bg-gray-700"
-                            >
+                              >
                                 {t('backToList')}
-                            </button>
+                              </button>
+                           )}
                             <button
                                 onClick={handleSaveInvoice}
-                                disabled={isSaving}
+                                disabled={isSaving || !session}
                                 className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed"
                             >
                                 {isSaving ? t('saving') : (invoice.id ? t('updateInvoice') : t('saveInvoice'))}
                             </button>
                         </div>
                     </div>
+                     {!session && (
+                        <p className="text-sm text-center text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 p-3 rounded-md">
+                            <button onClick={() => onRequestAuth('signin')} className="font-medium text-blue-600 dark:text-blue-400 hover:underline focus:outline-none">{t('signInToSaveActionSignIn')}</button>
+                            {t('signInToSaveOr')}
+                            <button onClick={() => onRequestAuth('signup')} className="font-medium text-blue-600 dark:text-blue-400 hover:underline focus:outline-none">{t('signInToSaveActionCreate')}</button>
+                            {t('signInToSaveSuffix')}
+                        </p>
+                    )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
                             <h3 className="font-bold mb-2 text-lg">{t('from')}</h3>
@@ -306,7 +318,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
                                         <InvoiceField label={t('price')} id={`item-price-${item.id}`} type="number" value={item.price} onChange={e => handleLineItemChange(item.id, 'price', parseFloat(e.target.value) || 0)} />
                                     </div>
                                     <div className="col-span-4 sm:col-span-2 text-right self-end pb-2">
-                                        <p className="text-sm font-medium">{formatCurrency(item.quantity * item.price)}</p>
+                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatCurrency(item.quantity * item.price)}</p>
                                     </div>
                                     <div className="col-span-12 sm:col-span-1 flex justify-end items-end pb-1">
                                          <button onClick={() => removeLineItem(item.id)} className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50">
@@ -316,7 +328,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
                                 </div>
                             ))}
                         </div>
-                        <button onClick={addLineItem} className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <button onClick={addLineItem} className="mt-4 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                            <PlusIcon className="w-5 h-5"/> {t('addItem')}
                         </button>
                     </div>
@@ -348,8 +360,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
 
                 {/* Preview Section */}
                 <div className="relative">
-                   <div className="sticky top-8">
-                        <div id="invoice-preview" className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
+                   <div className="sticky top-8 max-h-[calc(100vh-4rem)] flex flex-col">
+                        <h2 className="text-xl font-bold mb-4 flex-shrink-0">{t('previewInvoice')}</h2>
+                        <div id="invoice-preview" className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg overflow-y-auto flex-grow text-gray-900 dark:text-gray-100">
                              <header className="flex justify-between items-start mb-8">
                                 <div className="flex-1">
                                     {invoice.from.logo ? (
@@ -388,17 +401,17 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
                             </section>
 
                             <table className="w-full mb-8">
-                                <thead className="bg-gray-100 dark:bg-gray-700">
-                                    <tr>
-                                        <th className="text-left p-2 font-bold">{t('item')}</th>
-                                        <th className="text-center p-2 font-bold">{t('quantityShort')}</th>
-                                        <th className="text-right p-2 font-bold">{t('price')}</th>
-                                        <th className="text-right p-2 font-bold">{t('total')}</th>
+                                <thead>
+                                    <tr className="border-b-2 border-gray-800 dark:border-gray-200">
+                                        <th className="text-left p-2 font-bold text-gray-900 dark:text-white">{t('item')}</th>
+                                        <th className="text-center p-2 font-bold text-gray-900 dark:text-white">{t('quantityShort')}</th>
+                                        <th className="text-right p-2 font-bold text-gray-900 dark:text-white">{t('price')}</th>
+                                        <th className="text-right p-2 font-bold text-gray-900 dark:text-white">{t('total')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {invoice.items.map(item => (
-                                        <tr key={item.id} className="border-b border-gray-200 dark:border-gray-700">
+                                        <tr key={item.id} className="border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100">
                                             <td className="p-2">{item.description}</td>
                                             <td className="p-2 text-center">{item.quantity}</td>
                                             <td className="p-2 text-right">{formatCurrency(item.price)}</td>
@@ -409,7 +422,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
                             </table>
 
                              <div className="flex justify-end mb-8">
-                                <div className="w-full max-w-xs space-y-2">
+                                <div className="w-full max-w-xs space-y-2 text-gray-900 dark:text-gray-100">
                                     <div className="flex justify-between"><span>{t('subtotal')}:</span><span>{formatCurrency(subtotal)}</span></div>
                                     <div className="flex justify-between"><span>{t('tax')} ({invoice.taxRate}%):</span><span>{formatCurrency(taxAmount)}</span></div>
                                     <div className="flex justify-between font-bold text-xl border-t-2 pt-2 border-gray-800 dark:border-gray-200"><span>{t('total')}:</span><span>{formatCurrency(total)}</span></div>
@@ -418,7 +431,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
                             
                             <p className="text-sm text-gray-500 dark:text-gray-400">{invoice.notes}</p>
                         </div>
-                        <button onClick={downloadPdf} disabled={isGenerating} className="mt-6 w-full flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white font-bold rounded-md hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <button onClick={downloadPdf} disabled={isGenerating} className="mt-6 w-full flex-shrink-0 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white font-bold rounded-md hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                             {isGenerating ? t('generating') : <><DownloadIcon className="w-5 h-5"/> {t('downloadPdf')}</>}
                         </button>
                    </div>
