@@ -7,6 +7,7 @@ const Auth: React.FC = () => {
     const [isForgotPassword, setIsForgotPassword] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
 
@@ -18,13 +19,67 @@ const Auth: React.FC = () => {
 
         try {
             if (isForgotPassword) {
-                const { error } = await supabase.auth.resetPasswordForEmail(email);
-                if (error) throw error;
-                setMessage('Check your email for the password reset link!');
+                // To implement this feature, you need to create a PostgreSQL function in your Supabase project.
+                // Go to the SQL Editor in your Supabase dashboard and run the following query:
+                /*
+                    create or replace function user_exists(email_to_check text)
+                    returns boolean
+                    language plpgsql
+                    security definer
+                    as $$
+                    begin
+                      return exists (
+                        select 1
+                        from auth.users
+                        where email = email_to_check
+                      );
+                    end;
+                    $$;
+                */
+                const { data: userExists, error: rpcError } = await supabase.rpc('user_exists', {
+                    email_to_check: email,
+                });
+
+                if (rpcError) {
+                    console.error("Error calling RPC 'user_exists':", rpcError);
+                    if (rpcError.message.includes("function user_exists")) {
+                         console.error("Hint: The 'user_exists' function is missing or has incorrect parameters. Please create it in the Supabase SQL Editor as per the comment in Auth.tsx.");
+                    }
+                    // For security, present a generic error to the user
+                    throw new Error("An error occurred. Please try again.");
+                }
+
+                if (userExists) {
+                    const { error } = await supabase.auth.resetPasswordForEmail(email);
+                    if (error) throw error;
+                    setMessage('Check your email for the password reset link!');
+                } else {
+                    setError('Email is not registered.');
+                }
             } else if (isSignUp) {
-                const { error } = await supabase.auth.signUp({ email, password });
-                if (error) throw error;
-                setMessage('Check your email for the confirmation link!');
+                if (password !== confirmPassword) {
+                    throw new Error("Passwords do not match.");
+                }
+
+                const { data: userExists, error: rpcError } = await supabase.rpc('user_exists', {
+                    email_to_check: email,
+                });
+
+                if (rpcError) {
+                    console.error("Error calling RPC 'user_exists':", rpcError);
+                     if (rpcError.message.includes("function user_exists")) {
+                         console.error("Hint: The 'user_exists' function is missing. Please create it in the Supabase SQL Editor.");
+                    }
+                    throw new Error("An error occurred. Please try again.");
+                }
+
+                if (userExists) {
+                    setError('Email is already registered.');
+                } else {
+                    const { error } = await supabase.auth.signUp({ email, password });
+                    if (error) throw error;
+                    setMessage('Check your email for the confirmation link!');
+                }
             } else {
                 const { error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
@@ -39,6 +94,7 @@ const Auth: React.FC = () => {
     const resetFormState = () => {
         setError(null);
         setMessage(null);
+        setConfirmPassword('');
     }
 
     const getTitle = () => {
@@ -95,13 +151,31 @@ const Auth: React.FC = () => {
                                     id="password"
                                     name="password"
                                     type="password"
-                                    autoComplete="current-password"
+                                    autoComplete={isSignUp ? "new-password" : "current-password"}
                                     required
                                     minLength={6}
                                     className="relative block w-full appearance-none rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                                     placeholder="Password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
+                                />
+                            </div>
+                        )}
+                         {isSignUp && (
+                            <div>
+                                <label htmlFor="confirm-password" className="sr-only">
+                                    Confirm Password
+                                </label>
+                                <input
+                                    id="confirm-password"
+                                    name="confirm-password"
+                                    type="password"
+                                    autoComplete="new-password"
+                                    required
+                                    className="relative block w-full appearance-none rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                                    placeholder="Confirm Password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
                                 />
                             </div>
                         )}
