@@ -16,7 +16,7 @@ const createDefaultInvoice = (): Invoice => ({
     invoiceNumber: 'INV-001',
     date: new Date().toISOString().split('T')[0],
     dueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
-    from: { name: 'Your Company', address: '123 Your Street, Your City', email: 'your.email@example.com', logo: undefined },
+    from: { name: 'Your Company', address: '123 Your Street, Your City', email: 'your.email@example.com', logo: undefined, logoWidth: 150 },
     to: { name: 'Client Company', address: '456 Client Avenue, Client City', email: 'client.email@example.com' },
     items: [{ id: crypto.randomUUID(), description: 'Web Development Service', quantity: 10, price: 100 }],
     notes: 'Thank you for your business. Please pay within 30 days.',

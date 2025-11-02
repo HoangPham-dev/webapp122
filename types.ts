@@ -15,6 +15,7 @@ export interface Invoice {
     address: string;
     email: string;
     logo?: string;
+    logoWidth?: number;
   };
   to: {
     name: string;

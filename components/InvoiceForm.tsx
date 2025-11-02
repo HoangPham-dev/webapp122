@@ -257,6 +257,20 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
                                         {invoice.from.logo && <button onClick={() => handleInputChange('from', 'logo', undefined)} className="text-sm text-red-600 dark:text-red-400 hover:underline">{t('removeLogo')}</button>}
                                     </div>
                                     {invoice.from.logo && <img src={invoice.from.logo} alt="logo preview" className="mt-2 w-24 h-auto object-contain rounded-md border border-gray-200 dark:border-gray-700"/>}
+                                    {invoice.from.logo && (
+                                        <div className="mt-2">
+                                            <label htmlFor="logoWidth" className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('logoSize')} ({invoice.from.logoWidth}px)</label>
+                                            <input
+                                                id="logoWidth"
+                                                type="range"
+                                                min="50"
+                                                max="300"
+                                                value={invoice.from.logoWidth || 150}
+                                                onChange={e => handleInputChange('from', 'logoWidth', parseInt(e.target.value, 10))}
+                                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-600"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -339,16 +353,23 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
                              <header className="flex justify-between items-start mb-8">
                                 <div className="flex-1">
                                     {invoice.from.logo ? (
-                                        <img src={invoice.from.logo} alt="Company Logo" className="w-32 h-auto object-contain mb-4"/>
+                                        <>
+                                            <img
+                                                src={invoice.from.logo}
+                                                alt="Company Logo"
+                                                className="object-contain mb-4"
+                                                style={{ width: `${invoice.from.logoWidth || 150}px`, height: 'auto' }}
+                                            />
+                                            <h3 className="font-bold text-lg">{invoice.from.name}</h3>
+                                        </>
                                     ) : (
-                                        <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">{t('invoiceTitle')}</h2>
+                                        <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-1">{invoice.from.name}</h2>
                                     )}
-                                    <h3 className="font-bold text-lg">{invoice.from.name}</h3>
                                     <p className="text-sm text-gray-600 dark:text-gray-300">{invoice.from.address.split(',').map((line, i) => <span key={i}>{line.trim()}<br/></span>)}</p>
                                     <p className="text-sm text-gray-600 dark:text-gray-300">{invoice.from.email}</p>
                                 </div>
                                 <div className="text-right">
-                                    {!invoice.from.logo && <h2 className="text-3xl font-bold text-gray-800 dark:text-white">{t('invoiceTitle')}</h2>}
+                                    <h2 className="text-3xl font-bold text-gray-800 dark:text-white">{t('invoiceTitle')}</h2>
                                     <p className="text-gray-500 dark:text-gray-400 mt-2"># {invoice.invoiceNumber}</p>
                                 </div>
                             </header>
