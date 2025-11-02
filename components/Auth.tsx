@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useTranslation } from '../lib/i18n';
 
 const Auth: React.FC = () => {
+    const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
     const [isSignUp, setIsSignUp] = useState(false);
     const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -46,19 +48,19 @@ const Auth: React.FC = () => {
                          console.error("Hint: The 'user_exists' function is missing or has incorrect parameters. Please create it in the Supabase SQL Editor as per the comment in Auth.tsx.");
                     }
                     // For security, present a generic error to the user
-                    throw new Error("An error occurred. Please try again.");
+                    throw new Error(t('errorOccurred'));
                 }
 
                 if (userExists) {
                     const { error } = await supabase.auth.resetPasswordForEmail(email);
                     if (error) throw error;
-                    setMessage('Check your email for the password reset link!');
+                    setMessage(t('checkEmailReset'));
                 } else {
-                    setError('Email is not registered.');
+                    setError(t('emailNotRegistered'));
                 }
             } else if (isSignUp) {
                 if (password !== confirmPassword) {
-                    throw new Error("Passwords do not match.");
+                    throw new Error(t('passwordsDoNotMatch'));
                 }
 
                 // Explicitly check if the user exists before trying to sign up.
@@ -74,11 +76,11 @@ const Auth: React.FC = () => {
                     if (rpcError.message.includes("function user_exists")) {
                          console.error("Hint: The 'user_exists' function is missing or has incorrect parameters. Please create it in the Supabase SQL Editor as per the comment in Auth.tsx.");
                     }
-                    throw new Error("An error occurred. Please try again.");
+                    throw new Error(t('errorOccurred'));
                 }
 
                 if (userExists) {
-                    throw new Error("Email is already registered.");
+                    throw new Error(t('emailAlreadyRegistered'));
                 }
 
                 const { error } = await supabase.auth.signUp({ email, password });
@@ -87,7 +89,7 @@ const Auth: React.FC = () => {
                     throw error;
                 }
 
-                setMessage('Check your email for the confirmation link!');
+                setMessage(t('checkEmailConfirm'));
 
             } else {
                 const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -107,19 +109,19 @@ const Auth: React.FC = () => {
     }
 
     const getTitle = () => {
-        if (isForgotPassword) return 'Reset your password';
-        return isSignUp ? 'Create a new account' : 'Sign in to your account';
+        if (isForgotPassword) return t('resetPasswordTitle');
+        return isSignUp ? t('createAccountTitle') : t('signInTitle');
     };
 
     const getDescription = () => {
-        if (isForgotPassword) return 'Enter your email to receive a reset link';
-        return 'To access the Invoice Generator';
+        if (isForgotPassword) return t('resetPasswordDesc');
+        return t('authDesc');
     };
     
     const getButtonText = () => {
-        if (loading) return 'Processing...';
-        if (isForgotPassword) return 'Send Reset Link';
-        return isSignUp ? 'Sign Up' : 'Sign In';
+        if (loading) return t('processing');
+        if (isForgotPassword) return t('sendResetLink');
+        return isSignUp ? t('signUp') : t('signIn');
     };
 
     return (
@@ -137,7 +139,7 @@ const Auth: React.FC = () => {
                     <div className="space-y-4 rounded-md shadow-sm">
                         <div>
                             <label htmlFor="email-address" className="sr-only">
-                                Email address
+                                {t('emailAddress')}
                             </label>
                             <input
                                 id="email-address"
@@ -146,7 +148,7 @@ const Auth: React.FC = () => {
                                 autoComplete="email"
                                 required
                                 className="relative block w-full appearance-none rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                                placeholder="Email address"
+                                placeholder={t('emailAddress')}
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                             />
@@ -154,7 +156,7 @@ const Auth: React.FC = () => {
                         {!isForgotPassword && (
                             <div>
                                 <label htmlFor="password" className="sr-only">
-                                    Password
+                                    {t('password')}
                                 </label>
                                 <input
                                     id="password"
@@ -164,7 +166,7 @@ const Auth: React.FC = () => {
                                     required
                                     minLength={6}
                                     className="relative block w-full appearance-none rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                                    placeholder="Password"
+                                    placeholder={t('password')}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                 />
@@ -173,7 +175,7 @@ const Auth: React.FC = () => {
                          {isSignUp && (
                             <div>
                                 <label htmlFor="confirm-password" className="sr-only">
-                                    Confirm Password
+                                    {t('confirmPassword')}
                                 </label>
                                 <input
                                     id="confirm-password"
@@ -182,7 +184,7 @@ const Auth: React.FC = () => {
                                     autoComplete="new-password"
                                     required
                                     className="relative block w-full appearance-none rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                                    placeholder="Confirm Password"
+                                    placeholder={t('confirmPassword')}
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                 />
@@ -201,7 +203,7 @@ const Auth: React.FC = () => {
                                     type="button"
                                     className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 focus:outline-none"
                                 >
-                                    Forgot your password?
+                                    {t('forgotPassword')}
                                 </button>
                             </div>
                         </div>
@@ -234,7 +236,7 @@ const Auth: React.FC = () => {
                         }}
                         className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
                     >
-                        {isForgotPassword ? 'Back to Sign In' : (isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up")}
+                        {isForgotPassword ? t('backToSignIn') : (isSignUp ? t('alreadyHaveAccount') : t('dontHaveAccount'))}
                     </button>
                 </div>
             </div>

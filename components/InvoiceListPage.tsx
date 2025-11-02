@@ -4,6 +4,7 @@ import { Invoice } from '../types';
 import { supabase } from '../lib/supabase';
 import InvoiceList from './InvoiceList';
 import { PlusIcon } from './Icons';
+import { useTranslation } from '../lib/i18n';
 
 interface InvoiceListPageProps {
   onSelectInvoice: (invoice: Invoice) => void;
@@ -11,6 +12,7 @@ interface InvoiceListPageProps {
 }
 
 const InvoiceListPage: React.FC<InvoiceListPageProps> = ({ onSelectInvoice, onNewInvoice }) => {
+    const { t } = useTranslation();
     const [savedInvoices, setSavedInvoices] = useState<Invoice[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -26,16 +28,16 @@ const InvoiceListPage: React.FC<InvoiceListPageProps> = ({ onSelectInvoice, onNe
         if (error) {
             console.error('Error fetching invoices:', error);
             if (error.message.includes('relation "public.invoices" does not exist')) {
-                setMessage({ type: 'error', text: 'Database not set up. Please run the SQL script provided in InvoiceForm.tsx.' });
+                setMessage({ type: 'error', text: t('databaseSetupError') });
             } else {
-                 setMessage({ type: 'error', text: 'Could not fetch invoices.' });
+                 setMessage({ type: 'error', text: t('fetchInvoicesError') });
             }
         } else {
             const fetchedInvoices = data.map((item: any) => item.invoice_data);
             setSavedInvoices(fetchedInvoices);
         }
         setIsLoading(false);
-    }, []);
+    }, [t]);
 
     useEffect(() => {
         fetchInvoices();
@@ -47,9 +49,9 @@ const InvoiceListPage: React.FC<InvoiceListPageProps> = ({ onSelectInvoice, onNe
         const { error } = await supabase.from('invoices').delete().eq('id', invoiceId);
         
         if (error) {
-            setMessage({ type: 'error', text: 'Failed to delete invoice.' });
+            setMessage({ type: 'error', text: t('deleteInvoiceError') });
         } else {
-            setMessage({ type: 'success', text: 'Invoice deleted.' });
+            setMessage({ type: 'success', text: t('deleteInvoiceSuccess') });
             await fetchInvoices();
         }
         setIsDeleting(false);
@@ -60,13 +62,13 @@ const InvoiceListPage: React.FC<InvoiceListPageProps> = ({ onSelectInvoice, onNe
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
                 <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-                    <h1 className="text-2xl font-bold">My Invoices</h1>
+                    <h1 className="text-2xl font-bold">{t('myInvoices')}</h1>
                     <button
                         onClick={onNewInvoice}
                         className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        aria-label="Create new invoice"
+                        aria-label={t('createNewInvoiceAria')}
                     >
-                        <PlusIcon className="w-5 h-5" /> New Invoice
+                        <PlusIcon className="w-5 h-5" /> {t('newInvoice')}
                     </button>
                 </div>
                 {message && (
@@ -75,7 +77,7 @@ const InvoiceListPage: React.FC<InvoiceListPageProps> = ({ onSelectInvoice, onNe
                     </div>
                 )}
                  {isLoading ? (
-                    <div className="text-center p-8">Loading invoices...</div>
+                    <div className="text-center p-8">{t('loadingInvoices')}</div>
                  ) : (
                      <InvoiceList
                         invoices={savedInvoices}

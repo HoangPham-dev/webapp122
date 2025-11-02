@@ -1,9 +1,10 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Invoice, LineItem } from '../types';
 import InvoiceField from './InvoiceField';
 import { TrashIcon, PlusIcon, DownloadIcon } from './Icons';
 import { supabase } from '../lib/supabase';
+import { useTranslation } from '../lib/i18n';
 
 
 // --- Supabase Database Setup ---
@@ -66,26 +67,6 @@ const currencyOptions = [
     { value: 'VND', label: 'VND (₫)' },
 ];
 
-const currencyLocaleMap: { [key: string]: string } = {
-    USD: 'en-US',
-    EUR: 'de-DE',
-    GBP: 'en-GB',
-    JPY: 'ja-JP',
-    VND: 'vi-VN',
-};
-
-const createDefaultInvoice = (): Invoice => ({
-    invoiceNumber: 'INV-001',
-    date: new Date().toISOString().split('T')[0],
-    dueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
-    from: { name: 'Your Company', address: '123 Your Street, Your City', email: 'your.email@example.com' },
-    to: { name: 'Client Company', address: '456 Client Avenue, Client City', email: 'client.email@example.com' },
-    items: [{ id: crypto.randomUUID(), description: 'Web Development Service', quantity: 10, price: 100 }],
-    notes: 'Thank you for your business. Please pay within 30 days.',
-    taxRate: 5,
-    currency: 'EUR',
-});
-
 interface InvoiceFormProps {
     invoiceData: Invoice;
     onSaveSuccess: () => void;
@@ -93,10 +74,12 @@ interface InvoiceFormProps {
 }
 
 const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, onBack }) => {
+    const { t, language } = useTranslation();
     const [invoice, setInvoice] = useState<Invoice>(invoiceData);
     const [isSaving, setIsSaving] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+    const logoInputRef = useRef<HTMLInputElement>(null);
     
     useEffect(() => {
         setInvoice(invoiceData);
@@ -109,7 +92,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
         
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-            setMessage({ type: 'error', text: 'You must be logged in to save.' });
+            setMessage({ type: 'error', text: t('mustBeLoggedInToSave') });
             setIsSaving(false);
             return;
         }
@@ -124,10 +107,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
 
         if (error) {
             console.error('Error saving invoice:', error);
-            setMessage({ type: 'error', text: 'Failed to save invoice. Please try again.' });
+            setMessage({ type: 'error', text: t('failedToSaveInvoice') });
             setTimeout(() => setMessage(null), 3000);
         } else {
-            setMessage({ type: 'success', text: `Invoice ${invoiceToSave.invoiceNumber} saved!` });
+            setMessage({ type: 'success', text: t('invoiceSavedSuccess', {invoiceNumber: invoiceToSave.invoiceNumber}) });
             setTimeout(() => {
                 setMessage(null);
                 onSaveSuccess();
@@ -136,7 +119,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
         setIsSaving(false);
     };
     
-    const handleInputChange = useCallback((section: keyof Invoice | null, field: string, value: string | number) => {
+    const handleInputChange = useCallback((section: keyof Invoice | null, field: string, value: any) => {
         if (section) {
             setInvoice(prev => ({
                 ...prev,
@@ -170,20 +153,36 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
             items: prev.items.filter(item => item.id !== id),
         }));
     }, []);
+    
+    const handleLogoUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) { // 2MB limit
+                alert(t('logoSizeError'));
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                handleInputChange('from', 'logo', reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    }, [handleInputChange, t]);
+
 
     const subtotal = invoice.items.reduce((acc, item) => acc + item.quantity * item.price, 0);
     const taxAmount = (subtotal * invoice.taxRate) / 100;
     const total = subtotal + taxAmount;
 
     const formatCurrency = (amount: number) => {
-        const locale = currencyLocaleMap[invoice.currency] || 'en-US';
+        const locale = { 'en': 'en-US', 'vi': 'vi-VN', 'nl': 'nl-NL' }[language] || 'en-US';
         return new Intl.NumberFormat(locale, { style: 'currency', currency: invoice.currency }).format(amount);
     };
 
     const downloadPdf = async () => {
         const invoicePreview = document.getElementById('invoice-preview');
         if (!invoicePreview || !jsPDF || !html2canvas) {
-            alert('PDF generation library not found.');
+            alert(t('pdfLibraryNotFound'));
             return;
         }
         setIsGenerating(true);
@@ -206,7 +205,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
 
         } catch (error) {
             console.error("Error generating PDF:", error);
-            alert("An error occurred while generating the PDF.");
+            alert(t('pdfGenerationError'));
         } finally {
             setIsGenerating(false);
         }
@@ -225,63 +224,72 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
                 <div className="space-y-6 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
                      <div className="flex flex-wrap items-center justify-between gap-4">
                         <h2 className="text-xl font-bold">
-                          {invoice.id ? `Editing: ${invoice.invoiceNumber}` : 'New Invoice'}
+                          {invoice.id ? t('editingInvoice', {invoiceNumber: invoice.invoiceNumber}) : t('newInvoice')}
                         </h2>
                         <div className="flex items-center gap-2">
                            <button
                                 onClick={onBack}
                                 className="px-4 py-2 bg-gray-600 text-white font-semibold rounded-md hover:bg-gray-700"
                             >
-                                Back to List
+                                {t('backToList')}
                             </button>
                             <button
                                 onClick={handleSaveInvoice}
                                 disabled={isSaving}
                                 className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed"
                             >
-                                {isSaving ? 'Saving...' : (invoice.id ? 'Update Invoice' : 'Save Invoice')}
+                                {isSaving ? t('saving') : (invoice.id ? t('updateInvoice') : t('saveInvoice'))}
                             </button>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-                            <h3 className="font-bold mb-2 text-lg">From</h3>
+                            <h3 className="font-bold mb-2 text-lg">{t('from')}</h3>
                             <div className="space-y-3">
-                                <InvoiceField label="Name" id="from.name" value={invoice.from.name} onChange={e => handleInputChange('from', 'name', e.target.value)} />
-                                <InvoiceField label="Address" id="from.address" value={invoice.from.address} onChange={e => handleInputChange('from', 'address', e.target.value)} isTextArea/>
-                                <InvoiceField label="Email" id="from.email" type="email" value={invoice.from.email} onChange={e => handleInputChange('from', 'email', e.target.value)} />
+                                <InvoiceField label={t('name')} id="from.name" value={invoice.from.name} onChange={e => handleInputChange('from', 'name', e.target.value)} />
+                                <InvoiceField label={t('address')} id="from.address" value={invoice.from.address} onChange={e => handleInputChange('from', 'address', e.target.value)} isTextArea/>
+                                <InvoiceField label={t('email')} id="from.email" type="email" value={invoice.from.email} onChange={e => handleInputChange('from', 'email', e.target.value)} />
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('logo')}</label>
+                                    <input type="file" accept="image/png, image/jpeg" ref={logoInputRef} onChange={handleLogoUpload} className="hidden" />
+                                    <div className="mt-1 flex items-center gap-4">
+                                        <button onClick={() => logoInputRef.current?.click()} className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-600 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">{t('uploadLogo')}</button>
+                                        {invoice.from.logo && <button onClick={() => handleInputChange('from', 'logo', undefined)} className="text-sm text-red-600 dark:text-red-400 hover:underline">{t('removeLogo')}</button>}
+                                    </div>
+                                    {invoice.from.logo && <img src={invoice.from.logo} alt="logo preview" className="mt-2 w-24 h-auto object-contain rounded-md border border-gray-200 dark:border-gray-700"/>}
+                                </div>
                             </div>
                         </div>
                         <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-                            <h3 className="font-bold mb-2 text-lg">To</h3>
+                            <h3 className="font-bold mb-2 text-lg">{t('to')}</h3>
                              <div className="space-y-3">
-                                <InvoiceField label="Name" id="to.name" value={invoice.to.name} onChange={e => handleInputChange('to', 'name', e.target.value)} />
-                                <InvoiceField label="Address" id="to.address" value={invoice.to.address} onChange={e => handleInputChange('to', 'address', e.target.value)} isTextArea/>
-                                <InvoiceField label="Email" id="to.email" type="email" value={invoice.to.email} onChange={e => handleInputChange('to', 'email', e.target.value)} />
+                                <InvoiceField label={t('name')} id="to.name" value={invoice.to.name} onChange={e => handleInputChange('to', 'name', e.target.value)} />
+                                <InvoiceField label={t('address')} id="to.address" value={invoice.to.address} onChange={e => handleInputChange('to', 'address', e.target.value)} isTextArea/>
+                                <InvoiceField label={t('email')} id="to.email" type="email" value={invoice.to.email} onChange={e => handleInputChange('to', 'email', e.target.value)} />
                             </div>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-                        <InvoiceField label="Invoice Number" id="invoiceNumber" value={invoice.invoiceNumber} onChange={e => handleInputChange(null, 'invoiceNumber', e.target.value)} />
-                        <InvoiceField label="Date" id="date" type="date" value={invoice.date} onChange={e => handleInputChange(null, 'date', e.target.value)} />
-                        <InvoiceField label="Due Date" id="dueDate" type="date" value={invoice.dueDate} onChange={e => handleInputChange(null, 'dueDate', e.target.value)} />
+                        <InvoiceField label={t('invoiceNumber')} id="invoiceNumber" value={invoice.invoiceNumber} onChange={e => handleInputChange(null, 'invoiceNumber', e.target.value)} />
+                        <InvoiceField label={t('date')} id="date" type="date" value={invoice.date} onChange={e => handleInputChange(null, 'date', e.target.value)} />
+                        <InvoiceField label={t('dueDate')} id="dueDate" type="date" value={invoice.dueDate} onChange={e => handleInputChange(null, 'dueDate', e.target.value)} />
                     </div>
 
                     {/* Line Items */}
                     <div>
-                        <h3 className="font-bold text-lg mb-2">Items</h3>
+                        <h3 className="font-bold text-lg mb-2">{t('items')}</h3>
                         <div className="space-y-4">
                             {invoice.items.map((item, index) => (
                                 <div key={item.id} className="grid grid-cols-12 gap-2 items-center p-2 border border-gray-200 dark:border-gray-700 rounded-lg">
                                     <div className="col-span-12 sm:col-span-5">
-                                        <InvoiceField label={`Description ${index+1}`} id={`item-desc-${item.id}`} value={item.description} onChange={e => handleLineItemChange(item.id, 'description', e.target.value)} />
+                                        <InvoiceField label={`${t('description')} ${index+1}`} id={`item-desc-${item.id}`} value={item.description} onChange={e => handleLineItemChange(item.id, 'description', e.target.value)} />
                                     </div>
                                     <div className="col-span-4 sm:col-span-2">
-                                        <InvoiceField label="Qty" id={`item-qty-${item.id}`} type="number" value={item.quantity} onChange={e => handleLineItemChange(item.id, 'quantity', parseFloat(e.target.value) || 0)} />
+                                        <InvoiceField label={t('quantityShort')} id={`item-qty-${item.id}`} type="number" value={item.quantity} onChange={e => handleLineItemChange(item.id, 'quantity', parseFloat(e.target.value) || 0)} />
                                     </div>
                                     <div className="col-span-4 sm:col-span-2">
-                                        <InvoiceField label="Price" id={`item-price-${item.id}`} type="number" value={item.price} onChange={e => handleLineItemChange(item.id, 'price', parseFloat(e.target.value) || 0)} />
+                                        <InvoiceField label={t('price')} id={`item-price-${item.id}`} type="number" value={item.price} onChange={e => handleLineItemChange(item.id, 'price', parseFloat(e.target.value) || 0)} />
                                     </div>
                                     <div className="col-span-4 sm:col-span-2 text-right self-end pb-2">
                                         <p className="text-sm font-medium">{formatCurrency(item.quantity * item.price)}</p>
@@ -295,16 +303,16 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
                             ))}
                         </div>
                         <button onClick={addLineItem} className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                           <PlusIcon className="w-5 h-5"/> Add Item
+                           <PlusIcon className="w-5 h-5"/> {t('addItem')}
                         </button>
                     </div>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-                        <InvoiceField label="Notes" id="notes" value={invoice.notes} onChange={e => handleInputChange(null, 'notes', e.target.value)} isTextArea/>
+                        <InvoiceField label={t('notes')} id="notes" value={invoice.notes} onChange={e => handleInputChange(null, 'notes', e.target.value)} isTextArea/>
                         <div className="grid grid-cols-2 gap-4">
-                            <InvoiceField label="Tax Rate (%)" id="taxRate" type="number" value={invoice.taxRate} onChange={e => handleInputChange(null, 'taxRate', parseFloat(e.target.value) || 0)} />
+                            <InvoiceField label={t('taxRate')} id="taxRate" type="number" value={invoice.taxRate} onChange={e => handleInputChange(null, 'taxRate', parseFloat(e.target.value) || 0)} />
                             <div>
                                 <label htmlFor="currency" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Currency
+                                    {t('currency')}
                                 </label>
                                 <select
                                     id="currency"
@@ -329,37 +337,42 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
                    <div className="sticky top-8">
                         <div id="invoice-preview" className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
                              <header className="flex justify-between items-start mb-8">
-                                <div>
-                                    <h2 className="text-3xl font-bold text-gray-800 dark:text-white">INVOICE</h2>
-                                    <p className="text-gray-500 dark:text-gray-400"># {invoice.invoiceNumber}</p>
-                                </div>
-                                <div className="text-right">
+                                <div className="flex-1">
+                                    {invoice.from.logo ? (
+                                        <img src={invoice.from.logo} alt="Company Logo" className="w-32 h-auto object-contain mb-4"/>
+                                    ) : (
+                                        <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">{t('invoiceTitle')}</h2>
+                                    )}
                                     <h3 className="font-bold text-lg">{invoice.from.name}</h3>
                                     <p className="text-sm text-gray-600 dark:text-gray-300">{invoice.from.address.split(',').map((line, i) => <span key={i}>{line.trim()}<br/></span>)}</p>
                                     <p className="text-sm text-gray-600 dark:text-gray-300">{invoice.from.email}</p>
+                                </div>
+                                <div className="text-right">
+                                    {!invoice.from.logo && <h2 className="text-3xl font-bold text-gray-800 dark:text-white">{t('invoiceTitle')}</h2>}
+                                    <p className="text-gray-500 dark:text-gray-400 mt-2"># {invoice.invoiceNumber}</p>
                                 </div>
                             </header>
 
                              <section className="flex justify-between mb-8">
                                 <div>
-                                    <h4 className="font-bold text-gray-500 dark:text-gray-400 mb-1">BILL TO</h4>
+                                    <h4 className="font-bold text-gray-500 dark:text-gray-400 mb-1">{t('billTo')}</h4>
                                     <p className="font-bold">{invoice.to.name}</p>
                                     <p className="text-sm text-gray-600 dark:text-gray-300">{invoice.to.address.split(',').map((line, i) => <span key={i}>{line.trim()}<br/></span>)}</p>
                                     <p className="text-sm text-gray-600 dark:text-gray-300">{invoice.to.email}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p><span className="font-bold text-gray-500 dark:text-gray-400">Date:</span> {invoice.date}</p>
-                                    <p><span className="font-bold text-gray-500 dark:text-gray-400">Due Date:</span> {invoice.dueDate}</p>
+                                    <p><span className="font-bold text-gray-500 dark:text-gray-400">{t('date')}:</span> {invoice.date}</p>
+                                    <p><span className="font-bold text-gray-500 dark:text-gray-400">{t('dueDate')}:</span> {invoice.dueDate}</p>
                                 </div>
                             </section>
 
                             <table className="w-full mb-8">
                                 <thead className="bg-gray-100 dark:bg-gray-700">
                                     <tr>
-                                        <th className="text-left p-2 font-bold">Item</th>
-                                        <th className="text-center p-2 font-bold">Qty</th>
-                                        <th className="text-right p-2 font-bold">Price</th>
-                                        <th className="text-right p-2 font-bold">Total</th>
+                                        <th className="text-left p-2 font-bold">{t('item')}</th>
+                                        <th className="text-center p-2 font-bold">{t('quantityShort')}</th>
+                                        <th className="text-right p-2 font-bold">{t('price')}</th>
+                                        <th className="text-right p-2 font-bold">{t('total')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -376,16 +389,16 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, onSaveSuccess, o
 
                              <div className="flex justify-end mb-8">
                                 <div className="w-full max-w-xs space-y-2">
-                                    <div className="flex justify-between"><span>Subtotal:</span><span>{formatCurrency(subtotal)}</span></div>
-                                    <div className="flex justify-between"><span>Tax ({invoice.taxRate}%):</span><span>{formatCurrency(taxAmount)}</span></div>
-                                    <div className="flex justify-between font-bold text-xl border-t-2 pt-2 border-gray-800 dark:border-gray-200"><span>Total:</span><span>{formatCurrency(total)}</span></div>
+                                    <div className="flex justify-between"><span>{t('subtotal')}:</span><span>{formatCurrency(subtotal)}</span></div>
+                                    <div className="flex justify-between"><span>{t('tax')} ({invoice.taxRate}%):</span><span>{formatCurrency(taxAmount)}</span></div>
+                                    <div className="flex justify-between font-bold text-xl border-t-2 pt-2 border-gray-800 dark:border-gray-200"><span>{t('total')}:</span><span>{formatCurrency(total)}</span></div>
                                 </div>
                             </div>
                             
                             <p className="text-sm text-gray-500 dark:text-gray-400">{invoice.notes}</p>
                         </div>
                         <button onClick={downloadPdf} disabled={isGenerating} className="mt-6 w-full flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white font-bold rounded-md hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                            {isGenerating ? 'Generating...' : <><DownloadIcon className="w-5 h-5"/> Download PDF</>}
+                            {isGenerating ? t('generating') : <><DownloadIcon className="w-5 h-5"/> {t('downloadPdf')}</>}
                         </button>
                    </div>
                 </div>
