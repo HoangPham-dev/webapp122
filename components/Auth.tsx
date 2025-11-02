@@ -61,25 +61,17 @@ const Auth: React.FC = () => {
                     throw new Error("Passwords do not match.");
                 }
 
-                const { data: userExists, error: rpcError } = await supabase.rpc('user_exists', {
-                    email_to_check: email,
-                });
-
-                if (rpcError) {
-                    console.error("Error calling RPC 'user_exists':", rpcError);
-                     if (rpcError.message.includes("function user_exists")) {
-                         console.error("Hint: The 'user_exists' function is missing. Please create it in the Supabase SQL Editor.");
-                    }
-                    throw new Error("An error occurred. Please try again.");
+                // Let Supabase handle the check for existing users.
+                // It will return a specific error if the email is already registered,
+                // which will be caught and displayed by the catch block.
+                const { error } = await supabase.auth.signUp({ email, password });
+                
+                if (error) {
+                    throw error;
                 }
 
-                if (userExists) {
-                    setError('Email is already registered.');
-                } else {
-                    const { error } = await supabase.auth.signUp({ email, password });
-                    if (error) throw error;
-                    setMessage('Check your email for the confirmation link!');
-                }
+                setMessage('Check your email for the confirmation link!');
+
             } else {
                 const { error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
