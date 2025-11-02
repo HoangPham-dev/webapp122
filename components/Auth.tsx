@@ -35,15 +35,21 @@ const Auth: React.FC = () => {
                     throw new Error(t('passwordsDoNotMatch'));
                 }
 
-                const { error } = await supabase.auth.signUp({ email, password });
+                const { data, error } = await supabase.auth.signUp({ email, password });
                 
                 if (error) {
-                    // Let the catch block handle the error message from Supabase,
-                    // which is often more specific (e.g., "User already registered").
                     throw error;
                 }
 
-                setMessage(t('checkEmailConfirm'));
+                // Supabase's signUp doesn't return an error for an existing user to prevent email enumeration.
+                // Instead, we inspect the response. If the user object has `email_confirmed_at` set,
+                // it means this user has already signed up and confirmed their email.
+                if (data.user && data.user.email_confirmed_at) {
+                     setError(t('emailAlreadyRegistered'));
+                } else {
+                    // This message is appropriate for both new users and existing but unconfirmed users.
+                    setMessage(t('checkEmailConfirm'));
+                }
 
             } else {
                 const { error } = await supabase.auth.signInWithPassword({ email, password });
