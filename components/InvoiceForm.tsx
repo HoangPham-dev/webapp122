@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Invoice, LineItem } from '../types';
 import InvoiceField from './InvoiceField';
@@ -359,7 +358,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, session, onSaveS
                 </div>
 
                 {/* Preview Section */}
-                <div className="relative">
+                <div className="relative" id="invoice-preview-wrapper">
                    <div className="sticky top-8 max-h-[calc(100vh-4rem)] flex flex-col">
                         <h2 className="text-xl font-bold mb-4 flex-shrink-0">{t('previewInvoice')}</h2>
                         <div id="invoice-preview" className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg overflow-y-auto flex-grow text-gray-900 dark:text-gray-100">
@@ -431,9 +430,15 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoiceData, session, onSaveS
                             
                             <p className="text-sm text-gray-500 dark:text-gray-400">{invoice.notes}</p>
                         </div>
-                        <button onClick={downloadPdf} disabled={isGenerating} className="mt-6 w-full flex-shrink-0 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white font-bold rounded-md hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                            {isGenerating ? t('generating') : <><DownloadIcon className="w-5 h-5"/> {t('downloadPdf')}</>}
-                        </button>
+                        <div id="print-download-buttons" className="mt-6 flex-shrink-0">
+                            <button 
+                                onClick={downloadPdf} 
+                                disabled={isGenerating} 
+                                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white font-bold rounded-md hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                            >
+                                {isGenerating ? t('generating') : <><DownloadIcon className="w-5 h-5"/> {t('downloadPdf')}</>}
+                            </button>
+                        </div>
                    </div>
                 </div>
             </div>
