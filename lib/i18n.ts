@@ -36,6 +36,8 @@ const translations = {
         passwordsDoNotMatch: "Passwords do not match.",
         emailAlreadyRegistered: "Email is already registered.",
         checkEmailConfirm: 'Check your email for the confirmation link!',
+        showPassword: 'Show password',
+        hidePassword: 'Hide password',
 
         // Update Password
         updatePasswordTitle: 'Update your password',
@@ -140,6 +142,8 @@ const translations = {
         passwordsDoNotMatch: "Mật khẩu không khớp.",
         emailAlreadyRegistered: "Email đã được đăng ký.",
         checkEmailConfirm: 'Kiểm tra email của bạn để lấy liên kết xác nhận!',
+        showPassword: 'Hiện mật khẩu',
+        hidePassword: 'Ẩn mật khẩu',
         updatePasswordTitle: 'Cập nhật mật khẩu',
         updatePasswordDesc: 'Nhập mật khẩu mới cho tài khoản của bạn.',
         newPassword: 'Mật khẩu mới',
@@ -236,6 +240,8 @@ const translations = {
         passwordsDoNotMatch: "Wachtwoorden komen niet overeen.",
         emailAlreadyRegistered: "E-mail is al geregistreerd.",
         checkEmailConfirm: 'Controleer uw e-mail voor de bevestigingslink!',
+        showPassword: 'Toon wachtwoord',
+        hidePassword: 'Verberg wachtwoord',
         updatePasswordTitle: 'Update uw wachtwoord',
         updatePasswordDesc: 'Voer een nieuw wachtwoord in voor uw account.',
         newPassword: 'Nieuw Wachtwoord',

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTranslation } from '../lib/i18n';
+import { EyeIcon, EyeOffIcon } from './Icons';
 
 interface UpdatePasswordProps {
     onPasswordUpdated: () => void;
@@ -14,6 +15,8 @@ const UpdatePassword: React.FC<UpdatePasswordProps> = ({ onPasswordUpdated }) =>
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const handlePasswordUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -59,14 +62,14 @@ const UpdatePassword: React.FC<UpdatePasswordProps> = ({ onPasswordUpdated }) =>
                 </div>
                 <form className="mt-8 space-y-6" onSubmit={handlePasswordUpdate}>
                     <div className="space-y-4 rounded-md shadow-sm">
-                        <div>
+                        <div className="relative">
                             <label htmlFor="password" className="sr-only">
                                 {t('newPassword')}
                             </label>
                             <input
                                 id="password"
                                 name="password"
-                                type="password"
+                                type={showPassword ? 'text' : 'password'}
                                 required
                                 minLength={6}
                                 className="relative block w-full appearance-none rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
@@ -74,15 +77,23 @@ const UpdatePassword: React.FC<UpdatePasswordProps> = ({ onPasswordUpdated }) =>
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                             />
+                             <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute inset-y-0 right-0 z-20 flex items-center pr-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                                aria-label={showPassword ? t('hidePassword') : t('showPassword')}
+                            >
+                                {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                            </button>
                         </div>
-                        <div>
+                        <div className="relative">
                             <label htmlFor="confirm-password" className="sr-only">
                                 {t('confirmNewPassword')}
                             </label>
                             <input
                                 id="confirm-password"
                                 name="confirm-password"
-                                type="password"
+                                type={showConfirmPassword ? 'text' : 'password'}
                                 required
                                 minLength={6}
                                 className="relative block w-full appearance-none rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
@@ -90,6 +101,14 @@ const UpdatePassword: React.FC<UpdatePasswordProps> = ({ onPasswordUpdated }) =>
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                             />
+                             <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute inset-y-0 right-0 z-20 flex items-center pr-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                                aria-label={showConfirmPassword ? t('hidePassword') : t('showPassword')}
+                            >
+                                {showConfirmPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                            </button>
                         </div>
                     </div>
 
