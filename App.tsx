@@ -4,12 +4,14 @@ import InvoiceForm from './components/InvoiceForm';
 import ThemeToggle from './components/ThemeToggle';
 import { GithubIcon, SignOutIcon } from './components/Icons';
 import Auth from './components/Auth';
+import UpdatePassword from './components/UpdatePassword';
 import { supabase } from './lib/supabase';
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [session, setSession] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showUpdatePassword, setShowUpdatePassword] = useState(false);
 
   useEffect(() => {
     const getSession = async () => {
@@ -20,6 +22,9 @@ const App: React.FC = () => {
     getSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (_event === 'PASSWORD_RECOVERY') {
+        setShowUpdatePassword(true);
+      }
       setSession(session);
     });
 
@@ -41,6 +46,7 @@ const App: React.FC = () => {
   };
 
   const handleSignOut = async () => {
+    setShowUpdatePassword(false);
     await supabase.auth.signOut();
   };
 
@@ -82,6 +88,8 @@ const App: React.FC = () => {
       <main>
         {loading ? (
             <div className="text-center p-8">Loading...</div>
+        ) : showUpdatePassword ? (
+            <UpdatePassword onPasswordUpdated={() => setShowUpdatePassword(false)} />
         ) : session ? (
             <InvoiceForm key={session.user.id} />
         ) : (
